@@ -10,22 +10,22 @@ from pyinflect import getAllInflections, getInflection
 from stempel import StempelStemmer
 import wn
 import morfeusz2
+
 pl = wn.Wordnet('omw-pl:1.4')
 
-#import plwordnet
-#wn = plwordnet.load('plwordnet.xml')
+# import plwordnet
+# wn = plwordnet.load('plwordnet.xml')
 
 morf = morfeusz2.Morfeusz()
-
 
 sp = spacy.load('pl_core_news_lg')
 stemmer = StempelStemmer.polimorf()
 
-
 random.seed(9001)
 
 'freq of polish alphabet letters '
-alphabet = [(0.1, ' '), (0.088, 'i'), (0.086, 'e'), (0.083, 'a'), (0.075, 'o'), (0.057, 'n'), (0.053, 'z'), (0.0415, 'r'),
+alphabet = [(0.1, ' '), (0.088, 'i'), (0.086, 'e'), (0.083, 'a'), (0.075, 'o'), (0.057, 'n'), (0.053, 'z'),
+            (0.0415, 'r'),
             (0.0413, 's'), (0.0411, 'w'),
             (0.0403, 'y'), (0.039, 'c'), (0.0385, 't'), (0.0335, 'd'), (0.03, 'k'), (0.0287, 'p'), (0.0281, 'm'),
             (0.0238, 'ł'), (0.0228, 'j'),
@@ -33,8 +33,8 @@ alphabet = [(0.1, ' '), (0.088, 'i'), (0.086, 'e'), (0.083, 'a'), (0.075, 'o'), 
             (0.0079, 'ą'), (0.0078, 'ó'), (0.0072, 'ś'), (0.006, 'ć'), (0.0026, 'f'), (0.0016, 'ń'),
             (0.0008, 'ź')]
 
-
 'Code responsible for creating Huffman tree'
+
 
 def read_f(in_file):
     with codecs.open(in_file, 'r', 'utf-8') as f:
@@ -44,6 +44,7 @@ def read_f(in_file):
 def write_f(in_file, txt):
     with codecs.open(in_file, 'w', 'utf-8') as f:
         f.write(txt)
+
 
 class HuffmanNode(object):
     def __init__(self, left=None, right=None, root=None):
@@ -152,7 +153,7 @@ def decode(message):
 'Generating list of synonyms for given word and POS'
 
 
-def list_synonyms(word, pos):
+def list_synonyms(word):
     synonyms = []
     anal = morf.analyse(word.lower())
     word_pos = anal[0][2][2]
@@ -162,13 +163,11 @@ def list_synonyms(word, pos):
                 continue
             anal = morf.analyse(i.lower())
             temp = anal[0][2][1]
-            if anal[0][2][2] == word_pos: #wersja mocno nastawiona na poprawne substytucje
+            if anal[0][2][2] == word_pos:  # wersja mocno nastawiona na poprawne substytucje
                 synonyms.append(temp)
     print(synonyms)
     print(word)
     return synonyms
-
-
 
 
 'Generating similarity score for given word an its synonyms'
@@ -183,7 +182,10 @@ def check_similarity(word, synon):
         dic.update({syn: similarity})
     return dic
 
+
 'Finding all differeces between two tokenized texts'
+
+
 def lists_diff(l1, l2):
     dic = []
     for i, j in zip(l1, l2):
@@ -198,103 +200,64 @@ if __name__ == "__main__":
 
     'coding alphabet and secret message letters'
     alp_code = generate_codes(alphabet)
-    secret = "it is a secret message"
+    secret = "secret message"
     secret_list = list(secret)
     msg = hd_msg(secret_list, alp_code)
     msg = ''.join(msg)
     print(msg)
 
     'suffix removal and pos tagging'
-    tokens = nltk.word_tokenize(secret) #                        tokenizacja
+    tokens = nltk.word_tokenize(secret)  # tokenizacja
     suff_less_secret = remove_suffix(tokens)
     'opening file, read and tokenize its content'
     orig_text = read_f('overt.txt')
-    words = nltk.word_tokenize(orig_text) #                        tokenizacja
-    i = 0 #iterator for skipping words
+    words = nltk.word_tokenize(orig_text)  # tokenizacja
+    i = 0  # iterator for skipping words
     'enumerate through given words'
     for id, word in enumerate(words):
-        word_sp = sp(word) #                        tu nie wiem co
+        word_sp = sp(word)  # tu nie wiem co
         word_tag = "".join([t.tag_ for t in word_sp])
         anal = morf.analyse(word_sp.text)
-        suff_less_word = anal[0][2][1] #stemmer.stem(word)
+        suff_less_word = anal[0][2][1]  # stemmer.stem(word)
         word_flection = anal[0][2][2]
         word_pos = pos_tag(word)
         if len(msg) > 0:
-            if word_pos[0] == 'NOUN':
-                if i == 0 and len(word) > 3:
-                    similarity = check_similarity(suff_less_word, list_synonyms(suff_less_word, 'NOUN'))
-                    similarity = dict(sorted(similarity.items(), key=lambda x: x[1], reverse=True))
-                    similarity = {y: x for x, y in similarity.items()}
-                    if len(similarity) < 2:
-                        continue
-                    else:
-                        similarity_code = generate_codes(list(similarity.items())[:3])
-                        similarity_code = {y: x for x, y in similarity_code.items()}
-                        print(similarity_code)
-                        for c in similarity_code:
-                            if msg.startswith(c):
-                                msg = msg[len(c):]
-                                print("Found a word:")
-                                print(msg)
-                                print(similarity_code.get(c) + '---' + words[id])
-                                temp = morf.generate(similarity_code.get(c))
-                                for iterator in temp:
-                                    if word_flection == iterator[2]:
-                                        inf = iterator[0]
-                                #inf = getInflection(similarity_code.get(c), tag=word_tag) #                        sposob znajdowania koncowek
-                                print('----------------')
-                                print(inf)
-                                print('----------------')
-                                if inf:
-                                    words[id] = inf
-                                else:
-                                    words[id] = similarity_code.get(c)
-                                break
+            if i == 0 and len(word) > 3:
+                similarity = check_similarity(suff_less_word, list_synonyms(suff_less_word))
+                similarity = dict(sorted(similarity.items(), key=lambda x: x[1], reverse=True))
+                similarity = {y: x for x, y in similarity.items()}
+                if len(similarity) < 2:
+                    continue
+                else:
+                    similarity_code = generate_codes(list(similarity.items())[:3])
+                    similarity_code = {y: x for x, y in similarity_code.items()}
+                    print(similarity_code)
+                    for c in similarity_code:
+                        if msg.startswith(c):
+                            msg = msg[len(c):]
+                            print("Found a word:")
+                            print(msg)
+                            print(similarity_code.get(c) + '---' + words[id])
+                            temp = morf.generate(similarity_code.get(c))
+                            for iterator in temp:
+                                if word_flection == iterator[2]:
+                                    inf = iterator[0]
+                            # inf = getInflection(similarity_code.get(c), tag=word_tag) #                        sposob znajdowania koncowek
+                            print('----------------')
+                            print(inf)
+                            print('----------------')
+                            if inf:
+                                words[id] = inf
                             else:
-                                continue
-
-            elif word_pos[0] == 'VERB' and len(word) > 3:
-                if i == 0:
-                    similarity = check_similarity(suff_less_word, list_synonyms(suff_less_word, 'VERB'))
-                    similarity = dict(sorted(similarity.items(), key=lambda x: x[1], reverse=True))
-                    similarity = {y: x for x, y in similarity.items()}
-                    if len(similarity) < 2:
-                        continue
-                    else:
-                        similarity_code = generate_codes(list(similarity.items())[:3])
-                        similarity = sorted(similarity)
-                        similarity_code = {y: x for x, y in similarity_code.items()}
-                        print(similarity_code)
-                        for c in similarity_code:
-                            if msg.startswith(c):
-                                msg = msg[len(c):]
-                                print("Found a word:")
-                                print(msg)
-                                print(similarity_code.get(c) + '---' + words[id])
-                                temp = morf.generate(similarity_code.get(c))
-                                for iterator in temp:
-                                    if word_flection == iterator[2]:
-                                        inf = iterator[0]
-                                # inf = getInflection(similarity_code.get(c), tag=word_tag) #                        sposob znajdowania koncowek
-                                print('----------------')
-                                print(inf)
-                                print('----------------')
-                                if inf:
-                                    words[id] = inf
-                                else:
-                                    words[id] = similarity_code.get(c)
-                                break
-                            else:
-                                continue
-            else:
-                continue
+                                words[id] = similarity_code.get(c)
+                            break
+                        else:
+                            continue
         else:
             print("Encoding done..")
             stego = ' '.join(words)
             write_f('result.txt', stego)
             break
-        i = (i + 1) % 2
-
 
     'Decoding:'
     orig_text = read_f('overt.txt')
@@ -302,8 +265,8 @@ if __name__ == "__main__":
     print("Decoding starting..")
     words = nltk.word_tokenize(orig_text)
     stego_words = nltk.word_tokenize(stego_text)
-    #print(words)
-    #print(stego_words)
+    # print(words)
+    # print(stego_words)
     diff = lists_diff(words, stego_words)
     print(diff)
     res_bin_code = ''
@@ -313,10 +276,7 @@ if __name__ == "__main__":
         anal = morf.analyse(word[1])
         temp2 = anal[0][2][1]
         word_pos = pos_tag(word[0])
-        if word_pos[0] == 'NOUN':
-            similarity = check_similarity(temp, list_synonyms(temp, 'NOUN'))
-        elif word_pos[0] == 'VERB':
-            similarity = check_similarity(temp, list_synonyms(temp, 'VERB'))
+        similarity = check_similarity(temp, list_synonyms(temp))
         similarity = dict(sorted(similarity.items(), key=lambda x: x[1], reverse=True))
         similarity = {y: x for x, y in similarity.items()}
         similarity_code = generate_codes(list(similarity.items())[:3])
